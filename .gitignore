@@ -1,2 +1,5 @@
 data.sqlite
 .ruby-version
+data.sqlite-journal
+/.bundle
+/vendor/bundle
