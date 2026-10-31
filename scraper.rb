@@ -23,10 +23,13 @@ class Scraper
 
   REF_REGEX = %r{\A(?:DA|CDC|MC)\s*\d+/\d{4}}
 
-  # x positions where the address and description columns of the weekly PDF
-  # table start (the reference column starts at ~64)
-  PDF_ADDRESS_X = 155
-  PDF_DESCRIPTION_X = 341
+  # Headings of the address and description columns of the weekly PDF table,
+  # which give the x positions where those columns start (the reference
+  # column is first). The positions move between PDFs.
+  PDF_ADDRESS_HEADING = "Address"
+  PDF_DESCRIPTION_HEADING = "Proposed Development"
+  # Allowance for text starting slightly left of its column heading
+  PDF_COLUMN_MARGIN = 2.0
   # Gap between characters that indicates a word break
   PDF_WORD_GAP = 2.0
 
@@ -213,13 +216,18 @@ class Scraper
   # drawn between table rows are used to group lines of text into rows.
   def parse_received_pdf(pdf)
     rows = []
+    columns = nil
     PDF::Reader.new(StringIO.new(pdf)).pages.each do |page|
+      # Only the first page has the table header, later pages reuse its columns
+      columns = pdf_columns(page) || columns
+      raise "No table header found" unless columns
+
       receiver = RulesReceiver.new
       page.walk(receiver)
       rules = receiver.rule_ys.uniq.sort.reverse
       raise "No table row separators found" if rules.length < 2
 
-      build_pdf_lines(page)
+      build_pdf_lines(page, columns)
         .group_by { |line| rules.count { |rule_y| rule_y > line[:y] } }
         .each_value do |row_lines|
           row = build_pdf_row(row_lines)
@@ -229,13 +237,22 @@ class Scraper
     rows
   end
 
+  # x positions where the address and description columns start, from the
+  # table header, or nil if the page has no header
+  def pdf_columns(page)
+    headings = page.runs.to_h { |r| [r.text.strip, r.origin.x - PDF_COLUMN_MARGIN] }
+    address_x = headings[PDF_ADDRESS_HEADING]
+    description_x = headings[PDF_DESCRIPTION_HEADING]
+    { address: address_x, description: description_x } if address_x && description_x
+  end
+
   # Group characters into lines of (y, column, text) with spaces inserted
   # wherever there is a visible gap between characters
-  def build_pdf_lines(page)
+  def build_pdf_lines(page, columns)
     chars = page.runs(merge: false).map do |r|
       { x: r.origin.x, y: r.origin.y, width: r.width, text: r.text }
     end
-    chars.group_by { |c| [c[:y], column_for(c[:x])] }.map do |(y, column), group|
+    chars.group_by { |c| [c[:y], column_for(c[:x], columns)] }.map do |(y, column), group|
       text = +""
       cursor = nil
       group.sort_by { |c| c[:x] }.each do |c|
@@ -247,10 +264,10 @@ class Scraper
     end
   end
 
-  def column_for(x_position)
-    if x_position >= PDF_DESCRIPTION_X
+  def column_for(x_position, columns)
+    if x_position >= columns[:description]
       :description
-    elsif x_position >= PDF_ADDRESS_X
+    elsif x_position >= columns[:address]
       :address
     else
       :reference

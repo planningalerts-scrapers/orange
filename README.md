@@ -24,13 +24,14 @@ Set `MORPH_AUSTRALIAN_PROXY` to an Australian proxy, preferably one that rotates
 
 ## Expected Output
 
-    Storing DA 205/2026(1) - Lot 17 DP 574798 - 6 Beasley Street, Orange NSW
-    Storing DA 206/2026(1) - Lot 14 DP 1070456 - 10 Brooklands Drive, Orange NSW
+    Storing DA 13/2026(2) - Lot 310 DP 1273534 - 13 Fahy Crescent, Orange NSW
+    Storing DA 263/2026(1) - Lot 304 DP 1075807 - 10 Isaac Drive, Orange NSW
     ...
-    Storing DA 237/2026(1) - 89 Sampson Street, Orange NSW
-    Finished - processed 77 records
+    Storing DA 329/2026(1) - Lot 5 DP 35815 - 11 Spring Street, NSW
+    Storing DA 332/2026(1) - Lot 137 DP 805896 - 120 Sieben Drive, Orange NSW
+    Finished - processed 78 records
 
-Expected runtime: ~ 30 seconds
+Expected runtime: ~ 5 seconds
 
 ## To run the scraper
 
